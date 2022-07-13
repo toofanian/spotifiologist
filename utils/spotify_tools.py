@@ -12,7 +12,7 @@ class SpotifyConn:  # TODO use attrs class setup, throughout
         ...
 
     def get_auth_token(self):
-        client_creds = json.load(open('spot_client.json'))
+        client_creds = json.load(open('credentials_spot.json'))
         client_id = client_creds['client_id']
         client_secret = client_creds['client_secret']
 
