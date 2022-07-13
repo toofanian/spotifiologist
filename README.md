@@ -17,9 +17,8 @@ I don't trust spotify to track my music effectively. The app is wonky, and my mu
 tbd
 
 # Documentation... ish
-## Things I learned!
-* REST api syntax --- to interface with Spotify
-* Oauth authentication --- to connect to a spotify account
+## Things I learned! (or that i hope to learn)
+* REST api style --- to interface with Spotify
 * google cloud:
   * CLI --- idk
   * storage --- to store the data
