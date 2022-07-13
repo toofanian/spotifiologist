@@ -11,7 +11,7 @@ I don't trust spotify to track my music effectively. The app is wonky, and my mu
 
 ### Extended Functions
 * Support a smart playlist, with automated add/remove based on custom rules.
-* ...
+* Provide digests of newly liked songs/albums etc, ask for user confirmation
 
 ## Usage
 tbd
