@@ -1,3 +1,4 @@
+import os.path
 import sqlite3
 
 from utils.spotify_interface import SpotifyTalker
@@ -27,6 +28,7 @@ class SpotifyTool:
 
 
 def main():
+    if not os.path.isdir('databases'): os.mkdir('databases')
     database_path = 'databases/database.db'
     with sqlite3.connect(database_path) as sql_conn:
         sql_interface = SqlTalker.from_database_connection(sql_conn=sql_conn)
