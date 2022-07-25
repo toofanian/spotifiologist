@@ -22,10 +22,9 @@ class SpotifyTool:
             sql_interface=sql_interface
         )
 
-    def track_current_track(self):
-        current_track_info = self.spotify_interface.get_current_track()
-        self.sql_interface.add_tracks_to_timeline([current_track_info['track_name']])
-
+    def track_recent_tracks(self):
+        recent_track_info = self.spotify_interface.get_recent_tracks()
+        self.sql_interface.add_tracks_to_timeline([recent_track_info['track_name']])
 
 def main():
     if not os.path.isdir('databases'): os.mkdir('databases')
@@ -38,9 +37,7 @@ def main():
 
         spotify_tool = SpotifyTool.from_interfaces(spotify_interface=spotify_interface, sql_interface=sql_interface)
 
-        spotify_tool.track_current_track()
-
-
+        spotify_tool.track_recent_tracks()
 
 
 if __name__ == '__main__':

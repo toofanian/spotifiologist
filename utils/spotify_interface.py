@@ -2,7 +2,7 @@
 tools generally related to pushing/pulling spotify data
 """
 import time
-
+from pprint import pprint
 import attr
 import requests
 import json
@@ -73,6 +73,13 @@ class SpotifyTalker:
         curr_track_json = response.json()
         curr_track_info = {'track_name': curr_track_json['item']['name']}  # TODO expand to include more track data
         return curr_track_info
+
+    def get_recent_tracks(self):
+        self._refresh_token_if_expired()
+        headers = {'Authorization': f'Bearer {self.access_token}'}
+        response = requests.get('https://api.spotify.com/v1/me/player/recently-played', headers=headers)
+        response_json = response.json()
+        pprint(response_json)
 
     def get_playlist_tracks(self,
                             playlist_name: str):
