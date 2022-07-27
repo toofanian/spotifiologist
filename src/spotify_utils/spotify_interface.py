@@ -36,4 +36,7 @@ class ISpotify:
             }
         )
         recently_played_json = response_recently_played.json()
-        return [TrackListeningInfo.from_json_request_item(item) for item in recently_played_json['items']]
+        track_listening_info_batch = [
+            TrackListeningInfo.from_json_request_item(item) for item in recently_played_json['items']
+        ]
+        return track_listening_info_batch
