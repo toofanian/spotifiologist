@@ -1,14 +1,16 @@
-"""
-tools generally related to pushing/pulling sql data
-"""
-import os
 import sqlite3
+from abc import ABC
 
 import attr
 
 
 @attr.s(auto_attribs=True)
-class SqlTalker:
+class ISqlDatabase(ABC):
+    ...
+
+
+@attr.s(auto_attribs=True)
+class ISql(ISqlDatabase):
     sql_conn: sqlite3.Connection
 
     @classmethod

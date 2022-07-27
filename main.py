@@ -1,44 +1,19 @@
-import os.path
-import sqlite3
+import argparse
 
-from utils.spotify_interface import SpotifyTalker
-from utils.sql_interface import SqlTalker
-import attr
-
-
-@attr.s(auto_attribs=True)
-class SpotifyTool:
-    spotify_interface: SpotifyTalker
-    sql_interface: SqlTalker
-
-    @classmethod
-    def from_interfaces(
-            cls,
-            spotify_interface: SpotifyTalker,
-            sql_interface: SqlTalker
-    ):
-        return cls(
-            spotify_interface=spotify_interface,
-            sql_interface=sql_interface
-        )
-
-    def track_recent_tracks(self):
-        recent_track_info = self.spotify_interface.get_recent_tracks()
-        self.sql_interface.add_tracks_to_timeline([recent_track_info['track_name']])
-
-def main():
-    if not os.path.isdir('databases'): os.mkdir('databases')
-    database_path = 'databases/database.db'
-    with sqlite3.connect(database_path) as sql_conn:
-        sql_interface = SqlTalker.from_database_connection(sql_conn=sql_conn)
-
-        cred_json_path = '.creds/credentials_spot.json'
-        spotify_interface = SpotifyTalker.from_preauthorization(cred_json_path=cred_json_path)
-
-        spotify_tool = SpotifyTool.from_interfaces(spotify_interface=spotify_interface, sql_interface=sql_interface)
-
-        spotify_tool.track_recent_tracks()
+from src.database_utils.nosql_database_interface import IMongodb
+from src.integration.Spotifiologist import Spotifiologist
+from src.spotify_utils.spotify_authorization import SpotifyAuthorization
+from src.spotify_utils.spotify_interface import ISpotify
 
 
 if __name__ == '__main__':
-    main()
+    spotify_tool = Spotifiologist.from_interfaces(
+        spotify_interface=ISpotify.from_preauthorization(
+            preauthorization=SpotifyAuthorization.from_alex_json(
+                auth_json_path='.creds/credentials_spot.json'
+            )
+        ),
+        database_interface=IMongodb()
+    )
+
+    spotify_tool.log_recently_played()
