@@ -22,4 +22,9 @@ class Spotifiologist:
 
     def log_recently_played(self):
         recent_track_info = self.spotify.get_recently_played()
-        ...
+        for track_info in recent_track_info:
+            self.database.add_document(
+                collection_id='tracks',
+                document_id='1',
+                document_dict=attr.asdict(track_info)
+            )
