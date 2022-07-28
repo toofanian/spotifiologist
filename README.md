@@ -5,7 +5,7 @@ Dont let your Spotify data go to waste! Log your raw listening, store your bookm
 
 ## Functions
 ### Core Functions
-1) Track all of the user's listening, store data in permanent database. (WIP)
+1) Track all of the user's listening, store data in permanent database.
 2) Store copies of the user's saved songs, albums, and artists lists. (TODO)
 3) Store copies of the user's playlists. (TODO)
 
