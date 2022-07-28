@@ -1,20 +1,19 @@
-# Spotify Tools
-WIP, significantly!!
+# Spotifiologist
 
-I don't trust spotify to track my music effectively. The app is wonky, and my music is important to me. Still, it is the best platform for streaming music. So, this project aims to build an open source tracking service that enables a best-of-both-worlds situation.
+Dont let your Spotify data go to waste! Log your raw listening, store your bookmarked songs/albums/artists, and develop your own smart features.
+
 
 ## Functions
-### Basic Functions
-1) Track all of the user's listening, store data in permanent database.
-2) Store copies of the user's saved songs, albums, and artists lists.
-3) Store copies of the user's playlists.
+### Core Functions
+1) Track all of the user's listening, store data in permanent database. (WIP)
+2) Store copies of the user's saved songs, albums, and artists lists. (TODO)
+3) Store copies of the user's playlists. (TODO)
 
 ### Extended Functions
-* Support a smart playlist, with automated add/remove based on custom rules.
-* Provide digests of newly liked songs/albums etc, ask for user confirmation
+* Support a smart playlist, with automated add/remove based on custom rules. (TODO)
+* Provide digests of newly liked songs/albums etc, ask for user confirmation (TODO)
 
 ## Usage
 tbd
 
 # Documentation... ish
-
