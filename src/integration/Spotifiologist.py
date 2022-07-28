@@ -22,6 +22,7 @@ class Spotifiologist:
 
     def log_recently_played(self):
         recent_track_info = self.spotify.get_recently_played()
+        # TODO read recent track info, load up to last listen. maybe use spotify api cursor and some recursion
         for track_info in recent_track_info:
             self.database.add_document(
                 collection_id='tracks',

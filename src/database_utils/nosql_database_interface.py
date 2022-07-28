@@ -37,6 +37,9 @@ class IMongoDb(INoSqlDatabase):
     ):
         ...
 
+    def read_data(self, collection_id: str):
+        pass
+
 
 @attr.s(auto_attribs=True)
 class IFirebaseDb(INoSqlDatabase):
