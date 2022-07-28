@@ -10,26 +10,26 @@ from google.cloud import firestore as firestore
 class INoSqlDatabase(ABC):
 
     @abstractmethod
-    def add_document(
+    def add_document_to_collection(
             self,
             collection_id: str,
             document_dict: dict,
             document_id: Optional[str] = None
-    ):
+    ) -> None:
         ...
 
     @abstractmethod
-    def read_data(
+    def read_all_data_from_collection(
             self,
             collection_id: str
-    ):
+    ) -> dict:
         ...
 
 
 @attr.s(auto_attribs=True)
 class IMongoDb(INoSqlDatabase):
 
-    def add_document(
+    def add_document_to_collection(
             self,
             collection_id: str,
             document_dict: dict,
@@ -37,7 +37,7 @@ class IMongoDb(INoSqlDatabase):
     ):
         ...
 
-    def read_data(self, collection_id: str):
+    def read_all_data_from_collection(self, collection_id: str):
         pass
 
 
@@ -68,7 +68,7 @@ class IFirebaseDb(INoSqlDatabase):
             client=client
         )
 
-    def add_document(
+    def add_document_to_collection(
             self,
             collection_id: str,
             document_dict: dict,
@@ -76,13 +76,13 @@ class IFirebaseDb(INoSqlDatabase):
     ):
         self.client.collection(collection_id).add(
             document_data=document_dict,
-            document_id=None
+            document_id=document_id
         )
 
-    def read_data(
+    def read_all_data_from_collection(
             self,
             collection_id: str,
-    ):
+    ) -> dict:
         collection = self.client.collection(collection_id)
         documents = collection.stream()
 

@@ -1,3 +1,5 @@
+from typing import Optional
+
 import attr
 import requests
 
@@ -28,15 +30,25 @@ class ISpotify:
         currently_playing_json = response_currently_playing.json()
         return currently_playing_json
 
-    def get_recently_played(self):
+    def get_recently_played(
+            self,
+    ):
+        """
+
+        :return: tuple, (sorted list of TrackListeningInfo w/ most recent first, before_cursor)
+        """
+
         response_recently_played = requests.get(
-            url='https://api.spotify.com/v1/me/player/recently-played',
+            url='https://api.spotify.com/v1/me/player/recently-played?limit=50',
             headers={
                 'Authorization': f'Bearer {self.authorization.get_token()}'
             }
         )
         recently_played_json = response_recently_played.json()
+
         track_listening_info_batch = [
             TrackListeningInfo.from_json_request_item(item) for item in recently_played_json['items']
         ]
+        track_listening_info_batch.sort(key=lambda x: x.played_at, reverse=True)
+
         return track_listening_info_batch

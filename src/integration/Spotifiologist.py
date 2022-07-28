@@ -1,6 +1,7 @@
 import attr
 
 from src.database_utils.nosql_database_interface import INoSqlDatabase
+from src.integration.spotifiologist_collections import SpotifiologistCollections
 from src.spotify_utils.spotify_interface import ISpotify
 
 
@@ -21,11 +22,13 @@ class Spotifiologist:
         )
 
     def log_recently_played(self):
+        logged_listening_dict = self.database.read_all_data_from_collection(SpotifiologistCollections.LISTENING_LOG)
         recent_track_info = self.spotify.get_recently_played()
-        # TODO read recent track info, load up to last listen. maybe use spotify api cursor and some recursion
         for track_info in recent_track_info:
-            self.database.add_document(
-                collection_id='tracks',
-                document_id='1',
+            if track_info.uid in logged_listening_dict:
+                return
+            self.database.add_document_to_collection(
+                collection_id=SpotifiologistCollections.LISTENING_LOG,
+                document_id=track_info.uid,
                 document_dict=attr.asdict(track_info)
             )
