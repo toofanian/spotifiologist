@@ -1,8 +1,9 @@
-from typing import Optional
+import logging
 
 import attr
 import requests
 
+from src.spotify_utils.saved_album_info import SavedAlbumInfo
 from src.spotify_utils.spotify_authorization import SpotifyAuthorization
 from src.spotify_utils.track_listening_info import TrackListeningInfo
 
@@ -30,16 +31,14 @@ class ISpotify:
         currently_playing_json = response_currently_playing.json()
         return currently_playing_json
 
-    def get_recently_played(
-            self,
-    ):
+    def get_recently_played(self):
         """
-
         :return: tuple, (sorted list of TrackListeningInfo w/ most recent first, before_cursor)
         """
+        limit = 50
 
         response_recently_played = requests.get(
-            url='https://api.spotify.com/v1/me/player/recently-played?limit=50',
+            url=f'https://api.spotify.com/v1/me/player/recently-played?limit={limit}',
             headers={
                 'Authorization': f'Bearer {self.authorization.get_token()}'
             }
@@ -49,6 +48,33 @@ class ISpotify:
         track_listening_info_batch = [
             TrackListeningInfo.from_json_request_item(item) for item in recently_played_json['items']
         ]
+
+        # this sort shouldn't be necessary, but better safe than sorry
         track_listening_info_batch.sort(key=lambda x: x.played_at, reverse=True)
 
         return track_listening_info_batch
+
+    def get_saved_albums(self):
+        limit = 50
+        offset = 0
+
+        response_length = limit
+        count = 0
+        saved_albums_info = []
+        logging.warning('getting saved albums, this may take a while...')
+        for _ in range(1000):
+            response_saved_albums = requests.get(
+                url=f'https://api.spotify.com/v1/me/albums?offset={offset}&limit={limit}',
+                headers={
+                    'Authorization': f'Bearer {self.authorization.get_token()}'
+                }
+            )
+            saved_albums_json = response_saved_albums.json()
+            saved_albums_info.extend(
+                [SavedAlbumInfo.from_json_request_item(item) for item in saved_albums_json['items']]
+            )
+            offset += limit
+            count += 1
+            logging.warning(f'{len(saved_albums_info)} albums retrieved so far...')
+            if len(saved_albums_json['items']) < limit: break
+        return saved_albums_info

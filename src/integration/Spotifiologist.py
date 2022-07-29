@@ -32,3 +32,14 @@ class Spotifiologist:
                 document_id=track_info.uid,
                 document_dict=attr.asdict(track_info)
             )
+
+    def update_saved_albums(self):
+        prior_saved_albums_dict = self.database.read_all_data_from_collection(SpotifiologistCollections.SAVED_ALBUMS)
+        current_saved_albums_info = self.spotify.get_saved_albums()
+        for saved_album_info in current_saved_albums_info:
+            if saved_album_info.uid in prior_saved_albums_dict: continue
+            self.database.add_document_to_collection(
+                collection_id=SpotifiologistCollections.SAVED_ALBUMS,
+                document_id=saved_album_info.uid,
+                document_dict=attr.asdict(saved_album_info)
+            )

@@ -87,4 +87,4 @@ class IFirebaseDb(INoSqlDatabase):
         documents = collection.stream()
 
         documents_dict = {document.id: document.to_dict() for document in documents}
-        return documents_dict
+        return documents_dict if len(documents_dict) > 0 else {'empty': None}

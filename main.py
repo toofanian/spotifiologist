@@ -1,10 +1,9 @@
-import argparse
+import logging
 
 from src.database_utils.nosql_database_interface import IFirebaseDb
 from src.integration.Spotifiologist import Spotifiologist
 from src.spotify_utils.spotify_authorization import SpotifyAuthorization
 from src.spotify_utils.spotify_interface import ISpotify
-
 
 if __name__ == '__main__':
     spotify_tool = Spotifiologist.from_interfaces(
@@ -19,3 +18,4 @@ if __name__ == '__main__':
     )
 
     spotify_tool.log_recently_played()
+    spotify_tool.update_saved_albums()
