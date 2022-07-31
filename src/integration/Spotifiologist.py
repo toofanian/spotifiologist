@@ -21,25 +21,37 @@ class Spotifiologist:
             database=database_interface
         )
 
-    def log_recently_played(self):
-        logged_listening_dict = self.database.read_all_data_from_collection(SpotifiologistCollections.LISTENING_LOG)
-        recent_track_info = self.spotify.get_recently_played()
-        for track_info in recent_track_info:
-            if track_info.uid in logged_listening_dict:
-                return
-            self.database.add_document_to_collection(
-                collection_id=SpotifiologistCollections.LISTENING_LOG,
-                document_id=track_info.uid,
-                document_dict=attr.asdict(track_info)
-            )
+    def update_recently_played(self):
+        self._update(
+            collection_name=SpotifiologistCollections.LISTENING_LOG,
+            getter_function=self.spotify.get_recently_played
+        )
 
     def update_saved_albums(self):
-        prior_saved_albums_dict = self.database.read_all_data_from_collection(SpotifiologistCollections.SAVED_ALBUMS)
-        current_saved_albums_info = self.spotify.get_saved_albums()
-        for saved_album_info in current_saved_albums_info:
-            if saved_album_info.uid in prior_saved_albums_dict: continue
-            self.database.add_document_to_collection(
-                collection_id=SpotifiologistCollections.SAVED_ALBUMS,
-                document_id=saved_album_info.uid,
-                document_dict=attr.asdict(saved_album_info)
-            )
+        self._update(
+            collection_name=SpotifiologistCollections.SAVED_ALBUMS,
+            getter_function=self.spotify.get_saved_albums
+        )
+
+    def update_saved_songs(self):
+        self._update(
+            collection_name=SpotifiologistCollections.SAVED_SONGS,
+            getter_function=self.spotify.get_saved_songs
+        )
+
+    def _update(
+            self,
+            collection_name: SpotifiologistCollections,
+            getter_function
+    ):
+        new_info_list = getter_function()
+        prior_reference = self.database.read_all_data_from_collection(collection_name)
+        for new_info in new_info_list:
+            if new_info.uid in prior_reference:
+                continue
+            else:
+                self.database.add_document_to_collection(
+                    collection_id=collection_name,
+                    document_id=new_info.uid,
+                    document_dict=attr.asdict(new_info)
+                )

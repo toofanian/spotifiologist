@@ -17,5 +17,7 @@ if __name__ == '__main__':
         )
     )
 
-    spotify_tool.log_recently_played()
+    spotify_tool.update_recently_played()
     spotify_tool.update_saved_albums()
+    spotify_tool.update_saved_songs()
+

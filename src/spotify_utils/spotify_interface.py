@@ -3,9 +3,8 @@ import logging
 import attr
 import requests
 
-from src.spotify_utils.saved_album_info import SavedAlbumInfo
+from src.spotify_utils.saved_album_info import SavedAlbumInfo, TrackListeningInfo, SavedSongInfo
 from src.spotify_utils.spotify_authorization import SpotifyAuthorization
-from src.spotify_utils.track_listening_info import TrackListeningInfo
 
 
 @attr.s(auto_attribs=True)
@@ -78,3 +77,28 @@ class ISpotify:
             logging.warning(f'{len(saved_albums_info)} albums retrieved so far...')
             if len(saved_albums_json['items']) < limit: break
         return saved_albums_info
+
+    def get_saved_songs(self):
+        limit = 50
+        offset = 0
+
+        response_length = limit
+        count = 0
+        saved_songs_info = []
+        logging.warning('getting saved songs, this may take a while...')
+        for _ in range(1000):
+            response_saved_songs = requests.get(
+                url=f'https://api.spotify.com/v1/me/tracks?offset={offset}&limit={limit}',
+                headers={
+                    'Authorization': f'Bearer {self.authorization.get_token()}'
+                }
+            )
+            saved_songs_json = response_saved_songs.json()
+            saved_songs_info.extend(
+                [SavedSongInfo.from_json_request_item(item) for item in saved_songs_json['items']]
+            )
+            offset += limit
+            count += 1
+            logging.warning(f'{len(saved_songs_info)} songs retrieved so far...')
+            if len(saved_songs_json['items']) < limit: break
+        return saved_songs_info
