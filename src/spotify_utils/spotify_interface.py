@@ -32,40 +32,33 @@ class ISpotify:
 
     def get_recently_played(
             self,
-            limit: int = 50
     ):
         """
         :return: tuple, (sorted list of TrackListeningInfo w/ most recent first, before_cursor)
         """
-
         response_recently_played = requests.get(
-            url=f'https://api.spotify.com/v1/me/player/recently-played?limit={limit}',
+            url=f'https://api.spotify.com/v1/me/player/recently-played?limit=50',
             headers={
                 'Authorization': f'Bearer {self.authorization.get_token()}'
             }
         )
         recently_played_json = response_recently_played.json()
-
         track_listening_info_batch = [
             TrackListeningInfo.from_json_request_item(item) for item in recently_played_json['items']
         ]
-
         # this sort shouldn't be necessary, but better safe than sorry
         track_listening_info_batch.sort(key=lambda x: x.played_at, reverse=True)
-
         return track_listening_info_batch
 
-    def get_saved_albums(
+    def get_all_saved_albums(
             self,
-            limit: int = 50,
-            offset: int = 50
          ):
-        count: int = 0
         saved_albums_info = []
         logging.warning('getting saved albums, this may take a while...')
-        for _ in range(1000):
+        url = f'https://api.spotify.com/v1/me/albums?limit=50'
+        for iteration in range(1000):
             response_saved_albums = requests.get(
-                url=f'https://api.spotify.com/v1/me/albums?offset={offset}&limit={limit}',
+                url=url,
                 headers={
                     'Authorization': f'Bearer {self.authorization.get_token()}'
                 }
@@ -74,23 +67,21 @@ class ISpotify:
             saved_albums_info.extend(
                 [SavedAlbumInfo.from_json_request_item(item) for item in saved_albums_json['items']]
             )
-            offset += limit
-            count += 1
+            url = saved_albums_json['next']
             logging.warning(f'{len(saved_albums_info)} albums retrieved so far...')
-            if len(saved_albums_json['items']) < limit: break
+            if url is None: break
+            if iteration >= 999: logging.warning(f'Loop safeguard hit. Aborting at {iteration} calls.')
         return saved_albums_info
 
-    def get_saved_songs(
+    def get_all_saved_songs(
             self,
-            limit: int = 50,
-            offset: int = 50
     ):
-        count = 0
-        saved_songs_info = []
         logging.warning('getting saved songs, this may take a while...')
-        for _ in range(1000):
+        saved_songs_info = []
+        url = f'https://api.spotify.com/v1/me/tracks?limit=50'
+        for iteration in range(1000):
             response_saved_songs = requests.get(
-                url=f'https://api.spotify.com/v1/me/tracks?offset={offset}&limit={limit}',
+                url=url,
                 headers={
                     'Authorization': f'Bearer {self.authorization.get_token()}'
                 }
@@ -99,8 +90,8 @@ class ISpotify:
             saved_songs_info.extend(
                 [SavedSongInfo.from_json_request_item(item) for item in saved_songs_json['items']]
             )
-            offset += limit
-            count += 1
+            url = saved_songs_json['next']
             logging.warning(f'{len(saved_songs_info)} songs retrieved so far...')
-            if len(saved_songs_json['items']) < limit: break
+            if url is None: break
+            if iteration >= 999: logging.warning(f'Loop safeguard hit. Aborting at {iteration} calls.')
         return saved_songs_info

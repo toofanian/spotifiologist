@@ -35,7 +35,7 @@ class Spotifiologist:
                 )
 
     def update_saved_albums(self):
-        saved_albums_list = self.spotify.get_saved_albums()
+        saved_albums_list = self.spotify.get_all_saved_albums()
         current_saved_albums_dict = self.database.read_all_data_from_collection(
             collection_id=SpotifiologistCollections.SAVED_ALBUMS
         )
@@ -48,14 +48,14 @@ class Spotifiologist:
                 )
 
     def update_saved_songs(self):
-        saved_songs_list = self.spotify.get_saved_songs()
+        saved_songs_list = self.spotify.get_all_saved_songs()
         current_saved_songs_dict = self.database.read_all_data_from_collection(
             collection_id=SpotifiologistCollections.SAVED_SONGS
         )
         for saved_song in saved_songs_list:
-            if saved_song.uid not in current_saved_songs_dict:
+            if saved_song.get_uid() not in current_saved_songs_dict:
                 self.database.add_document_to_collection(
                     collection_id=SpotifiologistCollections.SAVED_SONGS,
-                    document_id=saved_song.uid,
+                    document_id=saved_song.get_uid(),
                     document_dict=attr.asdict(saved_song)
                 )
