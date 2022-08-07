@@ -3,7 +3,7 @@ import logging
 import attr
 import requests
 
-from src.spotify_utils.document_info import SavedAlbumInfo, TrackListeningInfo, SavedSongInfo
+from src.spotify_utils.spotify_item_info import SavedAlbumInfo, TrackListeningInfo, SavedSongInfo
 from src.spotify_utils.spotify_authorization import SpotifyAuthorization
 
 

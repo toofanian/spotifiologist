@@ -4,7 +4,7 @@ import attr
 
 
 @attr.s(auto_attribs=True)
-class DocumentInfo(ABC):
+class SpotifyItemInfo(ABC):
     _uid: str
 
     @classmethod
@@ -29,7 +29,7 @@ class DocumentInfo(ABC):
 
 
 @attr.s(auto_attribs=True)
-class SavedSongInfo(DocumentInfo):
+class SavedSongInfo(SpotifyItemInfo):
     _uid: str
     _song_name: str
     _album_name: str
@@ -62,7 +62,7 @@ class SavedSongInfo(DocumentInfo):
 
 
 @attr.s(auto_attribs=True)
-class SavedAlbumInfo(DocumentInfo):
+class SavedAlbumInfo(SpotifyItemInfo):
     _uid: str
     _album_name: str
     _artist_name: str
@@ -98,7 +98,7 @@ class SavedAlbumInfo(DocumentInfo):
 
 
 @attr.s(auto_attribs=True)
-class TrackListeningInfo(DocumentInfo):
+class TrackListeningInfo(SpotifyItemInfo):
     _uid: str
     _track_name: str
     _album_name: str
