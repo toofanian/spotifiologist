@@ -5,7 +5,7 @@ import attr
 
 @attr.s(auto_attribs=True)
 class DocumentInfo(ABC):
-    uid: str
+    _uid: str
 
     @classmethod
     @abstractmethod
@@ -23,15 +23,19 @@ class DocumentInfo(ABC):
     ):
         ...
 
+    @abstractmethod
+    def get_uid(self):
+        ...
+
 
 @attr.s(auto_attribs=True)
 class SavedSongInfo(DocumentInfo):
-    uid: str
-    song_name: str
-    album_name: str
-    artist_name: str
-    saved_at: str
-    uri: str
+    _uid: str
+    _song_name: str
+    _album_name: str
+    _artist_name: str
+    _saved_at: str
+    _uri: str
 
     @classmethod
     def from_json_request_item(cls, item: dict):
@@ -53,14 +57,17 @@ class SavedSongInfo(DocumentInfo):
         uri = from_dict['uri']
         return cls(uid, song_name, album_name, artist_name, saved_at, uri)
 
+    def get_uid(self):
+        return self._uid
+
 
 @attr.s(auto_attribs=True)
 class SavedAlbumInfo(DocumentInfo):
-    uid: str
-    album_name: str
-    artist_name: str
-    saved_at: str
-    uri: str
+    _uid: str
+    _album_name: str
+    _artist_name: str
+    _saved_at: str
+    _uri: str
 
     @classmethod
     def from_json_request_item(
@@ -86,15 +93,18 @@ class SavedAlbumInfo(DocumentInfo):
         uri = from_dict['uri']
         return cls(uid, album_name, artist_name, saved_at, uri)
 
+    def get_uid(self):
+        return self._uid
+
 
 @attr.s(auto_attribs=True)
 class TrackListeningInfo(DocumentInfo):
-    uid: str
-    track_name: str
-    album_name: str
-    artist_name: str
-    played_at: int
-    track_uri: str
+    _uid: str
+    _track_name: str
+    _album_name: str
+    _artist_name: str
+    _played_at: int
+    _track_uri: str
 
     @classmethod
     def from_json_request_item(
@@ -121,3 +131,6 @@ class TrackListeningInfo(DocumentInfo):
         played_at = from_dict['played_at']
         track_uri = from_dict['track_uri']
         return cls(uid, track_name, album_name, artist_name, played_at, track_uri)
+
+    def get_uid(self):
+        return self._uid

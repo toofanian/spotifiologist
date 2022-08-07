@@ -1,48 +1,13 @@
 import os
-from abc import ABC, abstractmethod
 from typing import Optional
 
 import attr
 from google.cloud import firestore as firestore
+from google.cloud.firestore_v1 import DocumentSnapshot
 
 
 @attr.s(auto_attribs=True)
-class INoSqlDatabase(ABC):
-
-    @abstractmethod
-    def add_document_to_collection(
-            self,
-            collection_id: str,
-            document_dict: dict,
-            document_id: Optional[str] = None
-    ) -> None:
-        ...
-
-    @abstractmethod
-    def read_all_data_from_collection(
-            self,
-            collection_id: str
-    ) -> dict:
-        ...
-
-
-@attr.s(auto_attribs=True)
-class IMongoDb(INoSqlDatabase):
-
-    def add_document_to_collection(
-            self,
-            collection_id: str,
-            document_dict: dict,
-            document_id: Optional[str] = None
-    ):
-        ...
-
-    def read_all_data_from_collection(self, collection_id: str):
-        pass
-
-
-@attr.s(auto_attribs=True)
-class IFirebaseDb(INoSqlDatabase):
+class IFirestoreDb:
     client: firestore.Client
 
     @classmethod
@@ -78,6 +43,17 @@ class IFirebaseDb(INoSqlDatabase):
             document_data=document_dict,
             document_id=document_id
         )
+
+    def read_document_data(
+            self,
+            collection_id: str,
+            document_id: str,
+            document_fields: Optional[str] = None
+    ) -> DocumentSnapshot:
+        collection = self.client.collection(collection_id)
+        document = collection.document(document_id)
+        document_data = document.get(document_fields)
+        return document_data
 
     def read_all_data_from_collection(
             self,

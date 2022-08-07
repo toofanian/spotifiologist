@@ -3,7 +3,7 @@ import logging
 import attr
 import requests
 
-from src.spotify_utils.saved_album_info import SavedAlbumInfo, TrackListeningInfo, SavedSongInfo
+from src.spotify_utils.document_info import SavedAlbumInfo, TrackListeningInfo, SavedSongInfo
 from src.spotify_utils.spotify_authorization import SpotifyAuthorization
 
 
@@ -30,11 +30,13 @@ class ISpotify:
         currently_playing_json = response_currently_playing.json()
         return currently_playing_json
 
-    def get_recently_played(self):
+    def get_recently_played(
+            self,
+            limit: int = 50
+    ):
         """
         :return: tuple, (sorted list of TrackListeningInfo w/ most recent first, before_cursor)
         """
-        limit = 50
 
         response_recently_played = requests.get(
             url=f'https://api.spotify.com/v1/me/player/recently-played?limit={limit}',
@@ -53,12 +55,12 @@ class ISpotify:
 
         return track_listening_info_batch
 
-    def get_saved_albums(self):
-        limit = 50
-        offset = 0
-
-        response_length = limit
-        count = 0
+    def get_saved_albums(
+            self,
+            limit: int = 50,
+            offset: int = 50
+         ):
+        count: int = 0
         saved_albums_info = []
         logging.warning('getting saved albums, this may take a while...')
         for _ in range(1000):
@@ -78,11 +80,11 @@ class ISpotify:
             if len(saved_albums_json['items']) < limit: break
         return saved_albums_info
 
-    def get_saved_songs(self):
-        limit = 50
-        offset = 0
-
-        response_length = limit
+    def get_saved_songs(
+            self,
+            limit: int = 50,
+            offset: int = 50
+    ):
         count = 0
         saved_songs_info = []
         logging.warning('getting saved songs, this may take a while...')

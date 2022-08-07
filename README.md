@@ -1,6 +1,6 @@
 # Spotifiologist
 
-Dont let your Spotify data go to waste! Log your raw listening, store your bookmarked songs/albums/artists, and develop your own smart features.
+Don't let your Spotify data go to waste! Log your raw listening, store your bookmarked songs/albums/artists, and develop your own smart features.
 
 
 ## Functions
@@ -11,7 +11,7 @@ Dont let your Spotify data go to waste! Log your raw listening, store your bookm
 
 ### Extended Functions
 * Support a smart playlist, with automated add/remove based on custom rules. (TODO)
-* Provide digests of newly liked songs/albums etc, ask for user confirmation (TODO)
+* Provide digests of newly liked songs/albums etc., ask for user confirmation (TODO)
 
 ## Usage
 tbd
