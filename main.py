@@ -1,7 +1,11 @@
+import logging
+
 from src.utils_data.firestore_interface import IFirestoreDb
 from src.integration.spotifiologist import Spotifiologist
 from src.spotify_utils.spotify_authorization import SpotifyAuthorization
 from src.spotify_utils.spotify_interface import ISpotify
+
+logging.basicConfig(level=logging.INFO)
 
 
 def main():

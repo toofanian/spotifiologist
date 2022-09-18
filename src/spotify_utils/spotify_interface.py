@@ -10,6 +10,7 @@ from src.spotify_utils.spotify_authorization import SpotifyAuthorization
 @attr.s(auto_attribs=True)
 class ISpotify:
     authorization: SpotifyAuthorization
+    _logger = logging.getLogger(__name__)
 
     @classmethod
     def from_preauthorization(
@@ -36,6 +37,7 @@ class ISpotify:
         """
         :return: tuple, (sorted list of TrackListeningInfo w/ most recent first, before_cursor)
         """
+        self._logger.info('getting recently played tracks...')
         response_recently_played = requests.get(
             url=f'https://api.spotify.com/v1/me/player/recently-played?limit=50',
             headers={
@@ -46,16 +48,16 @@ class ISpotify:
         track_listening_info_batch = [
             TrackListeningInfo.from_json_request_item(item) for item in recently_played_json['items']
         ]
-        # this sort shouldn't be necessary, but better safe than sorry
-        track_listening_info_batch.sort(key=lambda x: x.played_at, reverse=True)
+
+        self._logger.info(f'{len(track_listening_info_batch)} tracks retrieved.')
         return track_listening_info_batch
 
     def get_all_saved_albums(
             self,
          ):
         saved_albums_info = []
-        logging.warning('getting saved albums, this may take a while...')
         url = f'https://api.spotify.com/v1/me/albums?limit=50'
+        self._logger.info('getting saved albums, this may take a while...')
         for iteration in range(1000):
             response_saved_albums = requests.get(
                 url=url,
@@ -68,15 +70,18 @@ class ISpotify:
                 [SavedAlbumInfo.from_json_request_item(item) for item in saved_albums_json['items']]
             )
             url = saved_albums_json['next']
-            logging.warning(f'{len(saved_albums_info)} albums retrieved so far...')
-            if url is None: break
-            if iteration >= 999: logging.warning(f'Loop safeguard hit. Aborting at {iteration} calls.')
+            self._logger.debug(f'{len(saved_albums_info)} albums retrieved so far...')
+            if url is None:
+                break
+            if iteration >= 999: self._logger.warning(f'Loop safeguard hit. Aborting at {iteration} calls.')
+
+        self._logger.info(f'{len(saved_albums_info)} albums retrieved.')
         return saved_albums_info
 
     def get_all_saved_songs(
             self,
     ):
-        logging.warning('getting saved songs, this may take a while...')
+        self._logger.info('getting saved songs, this may take a while...')
         saved_songs_info = []
         url = f'https://api.spotify.com/v1/me/tracks?limit=50'
         for iteration in range(1000):
@@ -91,7 +96,9 @@ class ISpotify:
                 [SavedSongInfo.from_json_request_item(item) for item in saved_songs_json['items']]
             )
             url = saved_songs_json['next']
-            logging.warning(f'{len(saved_songs_info)} songs retrieved so far...')
+            self._logger.debug(f'{len(saved_songs_info)} songs retrieved so far...')
             if url is None: break
-            if iteration >= 999: logging.warning(f'Loop safeguard hit. Aborting at {iteration} calls.')
+            if iteration >= 999: self._logger.warning(f'Loop safeguard hit. Aborting at {iteration} calls.')
+
+        self._logger.info(f'{len(saved_songs_info)} songs retrieved.')
         return saved_songs_info
