@@ -6,14 +6,14 @@ setup(
     description="Spotify library backup and monitoring tool",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
-    python_requires=">=3.9",
+    python_requires=">=3.9,<3.12",
     install_requires=[
         # Core Dependencies
-        "spotipy>=2.23.0",         # Spotify API client
-        "pydantic>=2.6.1",         # Data validation
-        "python-dotenv>=1.0.0",    # Environment management
-        "loguru>=0.7.2",           # Better logging
-        "attrs>=23.1.0",           # Required by spotipy
+        "spotipy>=2.19.0,<2.20.0",  # Spotify API client (pinned for stability)
+        "pydantic>=1.10.0,<2.0.0",  # Data validation (v1 for compatibility)
+        "python-dotenv>=1.0.0",     # Environment management
+        "loguru>=0.7.2",            # Better logging
+        "attrs>=21.4.0"             # Required by spotipy
         
         # Storage & Data Management
         "sqlalchemy>=2.0.27",      # Database ORM
