@@ -1,13 +1,13 @@
 import logging
 
-import attr
+import attrs
 import requests
 
 from src.spotify_utils.spotify_item_info import SavedAlbumInfo, TrackListeningInfo, SavedSongInfo
 from src.spotify_utils.spotify_authorization import SpotifyAuthorization
 
 
-@attr.s(auto_attribs=True)
+@attrs.define(auto_attribs=True)
 class ISpotify:
     authorization: SpotifyAuthorization
     _logger = logging.getLogger(__name__)
@@ -38,12 +38,17 @@ class ISpotify:
         :return: tuple, (sorted list of TrackListeningInfo w/ most recent first, before_cursor)
         """
         self._logger.info('getting recently played tracks...')
-        response_recently_played = requests.get(
-            url=f'https://api.spotify.com/v1/me/player/recently-played?limit=50',
-            headers={
-                'Authorization': f'Bearer {self.authorization.get_token()}'
-            }
-        )
+        try:
+            response_recently_played = requests.get(
+                url=f'https://api.spotify.com/v1/me/player/recently-played?limit=50',
+                headers={
+                    'Authorization': f'Bearer {self.authorization.get_token()}'
+                }
+            )
+            response_recently_played.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            self._logger.error(f"Error getting recently played tracks: {str(e)}")
+            raise
         recently_played_json = response_recently_played.json()
         track_listening_info_batch = [
             TrackListeningInfo.from_json_request_item(item) for item in recently_played_json['items']

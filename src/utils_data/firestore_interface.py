@@ -2,12 +2,12 @@ import logging
 import os
 from typing import Optional
 
-import attr
-from google.cloud import firestore as firestore
+import attrs
+from google.cloud import firestore
 from google.cloud.firestore_v1 import DocumentSnapshot
 
 
-@attr.s(auto_attribs=True)
+@attrs.define(auto_attribs=True)
 class IFirestoreDb:
     _client: firestore.Client
     _logger = logging.getLogger(__name__)
