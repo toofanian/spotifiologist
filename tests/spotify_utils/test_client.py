@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from spotify_utils.client import SpotifyClient, SpotifyTrack, SpotifyAlbum, SpotifyPlaylist
+from spotify_utils.client import SpotifyClient, SpotifyTrack, SpotifyAlbum, SpotifyPlaylist, PlaylistTrack
 
 
 @pytest.fixture
@@ -31,7 +31,8 @@ def mock_spotify_track():
             'uri': 'spotify:track:track123',
             'is_local': False
         },
-        'added_at': '2024-03-06T12:00:00Z'
+        'added_at': '2024-03-06T12:00:00Z',
+        'added_by': {'id': 'user123'}
     }
 
 
@@ -169,4 +170,67 @@ def test_api_connection_failure(mock_spotify, mock_env_vars):
     client = SpotifyClient.from_env()
     assert client.test_connection() is False
     mock_spotify.return_value.current_user.assert_called_once()
+
+
+def test_playlist_track_from_response(mock_spotify_track):
+    """Test creating a PlaylistTrack model from API response."""
+    track = PlaylistTrack.from_playlist_track(mock_spotify_track, position=0)
+    
+    assert track.id == 'track123'
+    assert track.name == 'Test Track'
+    assert track.artists == ['Test Artist']
+    assert track.album_id == 'album123'
+    assert track.album_name == 'Test Album'
+    assert isinstance(track.added_at, datetime)
+    assert track.uri == 'spotify:track:track123'
+    assert track.position == 0
+    assert track.added_by_id == 'user123'
+
+
+@patch('spotipy.Spotify')
+def test_get_playlist_tracks(mock_spotify, mock_env_vars, mock_spotify_track):
+    """Test fetching tracks from a playlist."""
+    mock_spotify.return_value.playlist_items.return_value = {
+        'items': [mock_spotify_track],
+        'next': None
+    }
+    
+    client = SpotifyClient.from_env()
+    tracks = client.get_playlist_tracks('playlist123')
+    
+    assert len(tracks) == 1
+    assert isinstance(tracks[0], PlaylistTrack)
+    assert tracks[0].id == 'track123'
+    assert tracks[0].position == 0
+    assert tracks[0].added_by_id == 'user123'
+    mock_spotify.return_value.playlist_items.assert_called_once_with('playlist123', limit=100)
+
+
+@patch('spotipy.Spotify')
+def test_get_playlist_tracks_with_local_files(mock_spotify, mock_env_vars):
+    """Test that local files and invalid tracks are properly filtered."""
+    mock_spotify.return_value.playlist_items.return_value = {
+        'items': [
+            {
+                'track': {
+                    'id': None,
+                    'is_local': True,
+                    'name': 'Local Track'
+                },
+                'added_at': '2024-03-06T12:00:00Z',
+                'added_by': {'id': 'user123'}
+            },
+            {
+                'track': None,
+                'added_at': '2024-03-06T12:00:00Z',
+                'added_by': {'id': 'user123'}
+            }
+        ],
+        'next': None
+    }
+    
+    client = SpotifyClient.from_env()
+    tracks = client.get_playlist_tracks('playlist123')
+    
+    assert len(tracks) == 0  # All tracks should be filtered out
 

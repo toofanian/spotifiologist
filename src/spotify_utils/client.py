@@ -41,6 +41,34 @@ class SpotifyTrack(BaseModel):
         )
 
 
+class PlaylistTrack(SpotifyTrack):
+    """Model representing a track within a playlist, including playlist-specific metadata."""
+    position: int
+    added_by_id: str
+    is_local: bool = False
+
+    @classmethod
+    def from_playlist_track(cls, spotify_track: dict, position: int) -> 'PlaylistTrack':
+        """Create a PlaylistTrack from a Spotify playlist track response."""
+        track_data = spotify_track['track']
+        if not track_data or not track_data.get('id'):  # Skip local files and None tracks
+            return None
+        
+        return cls(
+            id=track_data['id'],
+            name=track_data['name'],
+            artists=[artist['name'] for artist in track_data['artists']],
+            album_id=track_data['album']['id'],
+            album_name=track_data['album']['name'],
+            added_at=datetime.fromisoformat(spotify_track['added_at'].replace('Z', '+00:00')),
+            is_local=track_data.get('is_local', False),
+            duration_ms=track_data['duration_ms'],
+            uri=track_data['uri'],
+            position=position,
+            added_by_id=spotify_track['added_by']['id']
+        )
+
+
 class SpotifyAlbum(BaseModel):
     """Model representing a Spotify album with essential metadata."""
     id: str
@@ -251,20 +279,28 @@ class SpotifyClient:
         logger.info(f'Retrieved {len(playlists)} playlists')
         return playlists
 
-    def get_playlist_tracks(self, playlist_id: str, limit: int = 100) -> List[SpotifyTrack]:
-        """Fetch all tracks from a specific playlist."""
+    def get_playlist_tracks(self, playlist_id: str, limit: int = 100) -> List[PlaylistTrack]:
+        """Fetch all tracks from a specific playlist.
+        
+        Args:
+            playlist_id: The Spotify ID of the playlist
+            limit: Number of tracks to fetch per request (max 100)
+            
+        Returns:
+            List of PlaylistTrack objects, containing track data and playlist-specific metadata
+            like position and who added the track.
+        """
         tracks = []
+        position = 0
         results = self.client.playlist_items(playlist_id, limit=limit)
         
         while results:
-            tracks.extend([
-                SpotifyTrack.from_saved_track({
-                    'track': item['track'],
-                    'added_at': item['added_at']
-                })
-                for item in results['items']
-                if item['track'] and item['track']['id']  # Filter out local files and None tracks
-            ])
+            for item in results['items']:
+                track = PlaylistTrack.from_playlist_track(item, position)
+                if track:  # Skip None tracks (local files)
+                    tracks.append(track)
+                position += 1
+                
             if not results['next']:
                 break
             results = self.client.next(results)
