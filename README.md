@@ -8,10 +8,13 @@ Spotifiologist helps you take control of your Spotify data by providing tools to
 ## Development Phases
 
 ### Phase 1: Core Infrastructure 🏗️
-- [ ] Spotify API Integration
-  - Authentication and authorization flow
-  - Rate limiting and error handling
-  - Library data fetching (tracks, albums, artists, playlists)
+- [x] Spotify API Integration
+  - [x] Authentication and authorization flow (via SpotifyOAuth)
+  - [x] Rate limiting and error handling (via Spotipy)
+  - [x] Library data models (tracks, albums, playlists)
+  - [ ] Library data fetching
+    - [x] Tracks and albums
+    - [ ] Playlists (in progress)
 
 - [ ] Data Storage Layer
   - Schema design for library entities
