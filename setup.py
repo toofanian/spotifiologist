@@ -13,7 +13,7 @@ setup(
         "pydantic>=1.10.0,<2.0.0",  # Data validation (v1 for compatibility)
         "python-dotenv>=1.0.0",     # Environment management
         "loguru>=0.7.2",            # Better logging
-        "attrs>=21.4.0"             # Required by spotipy
+        "attrs>=21.4.0",            # Required by spotipy
         
         # Storage & Data Management
         "sqlalchemy>=2.0.27",      # Database ORM
