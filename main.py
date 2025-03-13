@@ -1,19 +1,21 @@
 """Main entry point for Spotifiologist."""
-from datetime import datetime
 from pathlib import Path
 import json
+from datetime import datetime
 from loguru import logger
 import sys
 sys.path.append('src')
 from spotify_utils.client import SpotifyClient
+from core.utils import json_converter
 
 
-def backup_playlists(client: SpotifyClient, backup_dir: Path) -> bool:
+def backup_playlists(client: SpotifyClient, backup_dir: Path, limit: int | None = None) -> bool:
     """Backup all user playlists and their tracks.
     
     Args:
         client: Authenticated SpotifyClient instance
         backup_dir: Directory to store backup files
+        limit: Optional limit on number of playlists/tracks to backup
         
     Returns:
         bool: True if backup was successful, False otherwise
@@ -23,9 +25,9 @@ def backup_playlists(client: SpotifyClient, backup_dir: Path) -> bool:
         playlists_dir = backup_dir / 'playlists'
         playlists_dir.mkdir(parents=True, exist_ok=True)
         
-        # Get all user playlists
-        playlists = client.get_playlists()
-        logger.info(f"Found {len(playlists)} playlists to backup")
+        # Get user playlists
+        playlists = client.get_playlists(limit=limit)
+        logger.info(f"Found {len(playlists)} playlists to backup{' (limited)' if limit else ''}")
         
         # Generate backup timestamp
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
@@ -39,13 +41,13 @@ def backup_playlists(client: SpotifyClient, backup_dir: Path) -> bool:
             # Save playlist metadata
             metadata_file = playlist_dir / f'metadata_{timestamp}.json'
             with open(metadata_file, 'w') as f:
-                json.dump(playlist.dict(), f, indent=2)
+                json.dump(playlist.dict(), f, indent=2, default=json_converter)
             
             # Get and save playlist tracks
-            tracks = client.get_playlist_tracks(playlist.id)
+            tracks = client.get_playlist_tracks(playlist.id, limit=limit)
             tracks_file = playlist_dir / f'tracks_{timestamp}.json'
             with open(tracks_file, 'w') as f:
-                json.dump([track.dict() for track in tracks], f, indent=2)
+                json.dump([track.dict() for track in tracks], f, indent=2, default=json_converter)
             
             logger.info(f"Backed up playlist '{playlist.name}' with {len(tracks)} tracks")
         
@@ -56,46 +58,7 @@ def backup_playlists(client: SpotifyClient, backup_dir: Path) -> bool:
         return False
 
 
-def test_spotify_connection(client: SpotifyClient) -> bool:
-    """Test the Spotify API connection by fetching some library data.
-    
-    Args:
-        client: Authenticated SpotifyClient instance
-        
-    Returns:
-        bool: True if connection test was successful, False otherwise
-    """
-    try:
-        # Test fetching saved tracks
-        tracks = client.get_saved_tracks(limit=5)
-        logger.info(f"Successfully fetched {len(tracks)} tracks:")
-        for track in tracks:
-            logger.info(f"- {track.name} by {', '.join(track.artists)}")
-        
-        # Test fetching saved albums
-        albums = client.get_saved_albums(limit=5)
-        logger.info(f"\nSuccessfully fetched {len(albums)} albums:")
-        for album in albums:
-            logger.info(f"- {album.name} by {', '.join(album.artists)}")
-        
-        # Test fetching playlists
-        playlists = client.get_playlists(limit=5)
-        logger.info(f"\nSuccessfully fetched {len(playlists)} playlists:")
-        for playlist in playlists:
-            logger.info(f"- {playlist.name} ({playlist.total_tracks} tracks)")
-            
-            # Test fetching tracks from the first playlist
-            if playlist == playlists[0]:
-                playlist_tracks = client.get_playlist_tracks(playlist.id, limit=3)
-                logger.info(f"  Sample tracks from {playlist.name}:")
-                for track in playlist_tracks:
-                    logger.info(f"  - {track.name} by {', '.join(track.artists)}")
-        
-        return True
-    
-    except Exception as e:
-        logger.error(f"Error testing Spotify connection: {e}")
-        return False
+
 
 
 def main():
@@ -104,17 +67,18 @@ def main():
         # Initialize Spotify client
         client = SpotifyClient.from_env()
         
-        # Test API connection
-        logger.info("Testing Spotify API connection...")
-        if not test_spotify_connection(client):
-            logger.error("\n❌ Spotify API connection test failed!")
+        # Verify API connection
+        logger.info("Verifying Spotify API connection...")
+        if not client.test_connection():
+            logger.error("\n❌ Spotify API connection failed!")
             return
-        logger.info("\n✅ Spotify API connection test successful!")
+        logger.info("\n✅ Spotify API connection successful!")
         
         # Backup playlists
         logger.info("\nStarting playlist backup...")
         backup_dir = Path('.backup')
-        if backup_playlists(client, backup_dir):
+        # Use limit=5 for testing, remove limit for full backup
+        if backup_playlists(client, backup_dir, limit=5):
             logger.info("\n✅ Playlist backup successful!")
             logger.info(f"Backup files saved to: {backup_dir.absolute()}")
         else:

@@ -221,28 +221,64 @@ class SpotifyClient:
         )
 
     def get_saved_tracks(self, limit: int = 50) -> List[SpotifyTrack]:
-        """Fetch all saved tracks from the user's library."""
+        """Fetch saved tracks from the user's library.
+        
+        Args:
+            limit: Maximum number of tracks to return. If None, returns all tracks.
+                  Note that the Spotify API may return more items than requested in a single
+                  page, so the actual number of tracks returned might need to be limited.
+        """
         tracks = []
-        results = self.client.current_user_saved_tracks(limit=limit)
+        # Use a higher per_request limit for efficiency, but still respect the total limit
+        per_request = min(50, limit) if limit is not None else 50
+        results = self.client.current_user_saved_tracks(limit=per_request)
         
         while results:
             tracks.extend([SpotifyTrack.from_saved_track(item) for item in results['items']])
+            
+            # Stop if we've reached the requested limit
+            if limit is not None and len(tracks) > limit:
+                logger.warning(f'Received {len(tracks)} tracks but limit was {limit}. Trimming results.')
+                tracks = tracks[:limit]  # Trim to exact limit
+                break
+            elif limit is not None and len(tracks) == limit:
+                break
+                
             if not results['next']:
                 break
+                
             results = self.client.next(results)
         
         logger.info(f'Retrieved {len(tracks)} saved tracks')
         return tracks
 
     def get_saved_albums(self, limit: int = 50) -> List[SpotifyAlbum]:
-        """Fetch all saved albums from the user's library."""
+        """Fetch saved albums from the user's library.
+        
+        Args:
+            limit: Maximum number of albums to return. If None, returns all albums.
+                  Note that the Spotify API may return more items than requested in a single
+                  page, so the actual number of albums returned might need to be limited.
+        """
         albums = []
-        results = self.client.current_user_saved_albums(limit=limit)
+        # Use a higher per_request limit for efficiency, but still respect the total limit
+        per_request = min(50, limit) if limit is not None else 50
+        results = self.client.current_user_saved_albums(limit=per_request)
         
         while results:
             albums.extend([SpotifyAlbum.from_saved_album(item) for item in results['items']])
+            
+            # Stop if we've reached the requested limit
+            if limit is not None and len(albums) > limit:
+                logger.warning(f'Received {len(albums)} albums but limit was {limit}. Trimming results.')
+                albums = albums[:limit]  # Trim to exact limit
+                break
+            elif limit is not None and len(albums) == limit:
+                break
+                
             if not results['next']:
                 break
+                
             results = self.client.next(results)
         
         logger.info(f'Retrieved {len(albums)} saved albums')
@@ -266,25 +302,50 @@ class SpotifyClient:
             return False
 
     def get_playlists(self, limit: int = 50) -> List[SpotifyPlaylist]:
-        """Fetch all playlists from the user's library."""
+        """Fetch playlists from the user's library.
+        
+        Args:
+            limit: Maximum number of playlists to return. If None, returns all playlists.
+                  Note that the Spotify API may return more items than requested in a single
+                  page, so the actual number of playlists returned might need to be limited.
+        """
         playlists = []
-        results = self.client.current_user_playlists(limit=limit)
+        # Always fetch maximum allowed to minimize API calls
+        per_request = 50  # Maximum allowed by Spotify API
+        logger.info(f'Fetching playlists with per_request={per_request}, limit={limit}')
+        results = self.client.current_user_playlists(limit=per_request)
         
         while results:
             playlists.extend([SpotifyPlaylist.from_playlist(item) for item in results['items']])
+            
+            # Stop if we've reached the requested limit
+            if limit is not None and len(playlists) > limit:
+                logger.warning(f'Received {len(playlists)} playlists but limit was {limit}. Trimming results.')
+                playlists = playlists[:limit]  # Trim to exact limit
+                break
+            elif limit is not None and len(playlists) == limit:
+                break
+                
             if not results['next']:
                 break
-            results = self.client.next(results)
+                
+            # Only fetch next page if we need more items
+            if limit is not None and len(playlists) < limit:
+                results = self.client.next(results)
+            else:
+                break
         
         logger.info(f'Retrieved {len(playlists)} playlists')
         return playlists
 
-    def get_playlist_tracks(self, playlist_id: str, limit: int = 100) -> List[PlaylistTrack]:
-        """Fetch all tracks from a specific playlist.
+    def get_playlist_tracks(self, playlist_id: str, limit: int = 5) -> List[PlaylistTrack]:
+        """Fetch tracks from a specific playlist.
         
         Args:
             playlist_id: The Spotify ID of the playlist
-            limit: Number of tracks to fetch per request (max 100)
+            limit: Maximum number of tracks to return. If None, returns all tracks.
+                  Note that the Spotify API may return more items than requested in a single
+                  page, so the actual number of tracks returned might need to be limited.
             
         Returns:
             List of PlaylistTrack objects, containing track data and playlist-specific metadata
@@ -292,18 +353,40 @@ class SpotifyClient:
         """
         tracks = []
         position = 0
-        results = self.client.playlist_items(playlist_id, limit=limit)
+        # Use the provided limit for the initial request, or maximum allowed if no limit
+        per_request = min(limit, 100) if limit else 100  # Maximum allowed by Spotify API
+        logger.info(f'Fetching playlist tracks with per_request={per_request}, limit={limit}')
+        results = self.client.playlist_items(playlist_id, limit=per_request)
         
         while results:
             for item in results['items']:
+                # Stop if we've reached the requested limit
+                if limit is not None and len(tracks) >= limit:
+                    if len(tracks) > limit:
+                        logger.warning(f'Received {len(tracks)} tracks but limit was {limit}. Trimming results.')
+                        tracks = tracks[:limit]  # Trim to exact limit
+                    break
+                    
                 track = PlaylistTrack.from_playlist_track(item, position)
                 if track:  # Skip None tracks (local files)
                     tracks.append(track)
                 position += 1
+            
+            # Stop if we've reached the requested limit
+            if limit is not None and len(tracks) >= limit:
+                if len(tracks) > limit:
+                    logger.warning(f'Received {len(tracks)} tracks but limit was {limit}. Trimming results.')
+                    tracks = tracks[:limit]  # Trim to exact limit
+                break
                 
             if not results['next']:
                 break
-            results = self.client.next(results)
+                
+            # Only fetch next page if we need more items
+            if limit is not None and len(tracks) < limit:
+                results = self.client.next(results)
+            else:
+                break
         
         logger.info(f'Retrieved {len(tracks)} tracks from playlist {playlist_id}')
         return tracks

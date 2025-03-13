@@ -203,7 +203,7 @@ def test_get_playlist_tracks(mock_spotify, mock_env_vars, mock_spotify_track):
     assert tracks[0].id == 'track123'
     assert tracks[0].position == 0
     assert tracks[0].added_by_id == 'user123'
-    mock_spotify.return_value.playlist_items.assert_called_once_with('playlist123', limit=100)
+    mock_spotify.return_value.playlist_items.assert_called_once_with('playlist123', limit=5)
 
 
 @patch('spotipy.Spotify')
