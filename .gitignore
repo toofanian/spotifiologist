@@ -2,6 +2,7 @@
 credentials_spot.json
 .idea
 .creds
+.library
 databases
 scratch.txt
 sandbox*

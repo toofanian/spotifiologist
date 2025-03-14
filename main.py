@@ -2,11 +2,13 @@
 from pathlib import Path
 import json
 from datetime import datetime
+import argparse
 from loguru import logger
 import sys
 sys.path.append('src')
 from spotify_utils.client import SpotifyClient
 from core.utils import json_converter
+from core.library_browser import LibraryBrowser
 
 
 def backup_playlists(client: SpotifyClient, backup_dir: Path, limit: int | None = None) -> bool:
@@ -63,6 +65,16 @@ def backup_playlists(client: SpotifyClient, backup_dir: Path, limit: int | None 
 
 def main():
     """Main entry point."""
+    parser = argparse.ArgumentParser(description='Spotify Library Management Tool')
+    parser.add_argument('command', choices=['backup', 'browse'], help='Command to execute')
+    parser.add_argument('--action', choices=['pull', 'tracks', 'albums', 'playlists', 'view-playlist'],
+                        help='Action for browse command')
+    parser.add_argument('--search', help='Search term for listing items')
+    parser.add_argument('--playlist-id', help='Playlist ID for viewing specific playlist')
+    parser.add_argument('--limit', type=int, help='Limit number of items to process')
+    
+    args = parser.parse_args()
+    
     try:
         # Initialize Spotify client
         client = SpotifyClient.from_env()
@@ -74,15 +86,31 @@ def main():
             return
         logger.info("\n✅ Spotify API connection successful!")
         
-        # Backup playlists
-        logger.info("\nStarting playlist backup...")
-        backup_dir = Path('.backup')
-        # Use limit=5 for testing, remove limit for full backup
-        if backup_playlists(client, backup_dir, limit=5):
-            logger.info("\n✅ Playlist backup successful!")
-            logger.info(f"Backup files saved to: {backup_dir.absolute()}")
-        else:
-            logger.error("\n❌ Playlist backup failed!")
+        if args.command == 'backup':
+            # Backup playlists
+            logger.info("\nStarting playlist backup...")
+            backup_dir = Path('.backup')
+            if backup_playlists(client, backup_dir, limit=args.limit):
+                logger.info("\n✅ Playlist backup successful!")
+                logger.info(f"Backup files saved to: {backup_dir.absolute()}")
+            else:
+                logger.error("\n❌ Playlist backup failed!")
+        
+        elif args.command == 'browse':
+            browser = LibraryBrowser(client)
+            
+            if args.action == 'pull':
+                browser.pull_library()
+            elif args.action == 'tracks':
+                browser.list_tracks(args.search)
+            elif args.action == 'albums':
+                browser.list_albums(args.search)
+            elif args.action == 'playlists':
+                browser.list_playlists(args.search)
+            elif args.action == 'view-playlist' and args.playlist_id:
+                browser.view_playlist(args.playlist_id)
+            else:
+                parser.error("--action is required for browse command")
     
     except Exception as e:
         logger.error(f"\n❌ Error in main: {e}")

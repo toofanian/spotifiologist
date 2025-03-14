@@ -310,7 +310,7 @@ class SpotifyClient:
                   page, so the actual number of playlists returned might need to be limited.
         """
         playlists = []
-        # Always fetch maximum allowed to minimize API calls
+        # Use maximum allowed per request to minimize API calls
         per_request = 50  # Maximum allowed by Spotify API
         logger.info(f'Fetching playlists with per_request={per_request}, limit={limit}')
         results = self.client.current_user_playlists(limit=per_request)
@@ -318,22 +318,20 @@ class SpotifyClient:
         while results:
             playlists.extend([SpotifyPlaylist.from_playlist(item) for item in results['items']])
             
-            # Stop if we've reached the requested limit
-            if limit is not None and len(playlists) > limit:
-                logger.warning(f'Received {len(playlists)} playlists but limit was {limit}. Trimming results.')
-                playlists = playlists[:limit]  # Trim to exact limit
-                break
-            elif limit is not None and len(playlists) == limit:
-                break
-                
+            # If we have a limit and we've reached/exceeded it, trim and stop
+            if limit is not None:
+                if len(playlists) >= limit:
+                    if len(playlists) > limit:
+                        logger.warning(f'Received {len(playlists)} playlists but limit was {limit}. Trimming results.')
+                        playlists = playlists[:limit]  # Trim to exact limit
+                    break
+            
+            # No more pages to fetch
             if not results['next']:
                 break
                 
-            # Only fetch next page if we need more items
-            if limit is not None and len(playlists) < limit:
-                results = self.client.next(results)
-            else:
-                break
+            # Get next page if we need more items (either no limit or haven't reached limit)
+            results = self.client.next(results)
         
         logger.info(f'Retrieved {len(playlists)} playlists')
         return playlists
@@ -351,42 +349,42 @@ class SpotifyClient:
             List of PlaylistTrack objects, containing track data and playlist-specific metadata
             like position and who added the track.
         """
+        # Get playlist details first
+        playlist = self.client.playlist(playlist_id)
+        playlist_name = playlist.get('name', 'Unknown Playlist')
+        
         tracks = []
         position = 0
-        # Use the provided limit for the initial request, or maximum allowed if no limit
-        per_request = min(limit, 100) if limit else 100  # Maximum allowed by Spotify API
-        logger.info(f'Fetching playlist tracks with per_request={per_request}, limit={limit}')
+        # Use the requested limit for the initial API call
+        per_request = limit if limit else 100  # Maximum allowed by Spotify API
+        logger.info(f'Fetching tracks from playlist "{playlist_name}" with per_request={per_request}, limit={limit}')
         results = self.client.playlist_items(playlist_id, limit=per_request)
         
         while results:
             for item in results['items']:
-                # Stop if we've reached the requested limit
-                if limit is not None and len(tracks) >= limit:
-                    if len(tracks) > limit:
-                        logger.warning(f'Received {len(tracks)} tracks but limit was {limit}. Trimming results.')
-                        tracks = tracks[:limit]  # Trim to exact limit
-                    break
+                # Skip invalid tracks and local files
+                if not item.get('track') or item['track'].get('is_local', False):
+                    continue
                     
                 track = PlaylistTrack.from_playlist_track(item, position)
                 if track:  # Skip None tracks (local files)
                     tracks.append(track)
-                position += 1
-            
-            # Stop if we've reached the requested limit
-            if limit is not None and len(tracks) >= limit:
-                if len(tracks) > limit:
-                    logger.warning(f'Received {len(tracks)} tracks but limit was {limit}. Trimming results.')
-                    tracks = tracks[:limit]  # Trim to exact limit
-                break
+                    position += 1
                 
+                # If we have a limit and we've reached it, return immediately
+                if limit is not None and len(tracks) >= limit:
+                    if len(tracks) > limit:
+                        logger.warning(f'Received {len(tracks)} tracks but limit was {limit}. Trimming results.')
+                        tracks = tracks[:limit]  # Trim to exact limit
+                    logger.info(f'Retrieved {len(tracks)} tracks from playlist "{playlist_name}"')
+                    return tracks
+            
+            # No more pages to fetch
             if not results['next']:
                 break
                 
-            # Only fetch next page if we need more items
-            if limit is not None and len(tracks) < limit:
-                results = self.client.next(results)
-            else:
-                break
+            # Get next page of results
+            results = self.client.next(results)
         
-        logger.info(f'Retrieved {len(tracks)} tracks from playlist {playlist_id}')
+        logger.info(f'Retrieved {len(tracks)} tracks from playlist "{playlist_name}"')
         return tracks
