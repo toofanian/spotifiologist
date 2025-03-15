@@ -7,7 +7,7 @@ import os
 from datetime import datetime
 
 import spotipy
-from spotipy.oauth2 import SpotifyOAuth
+from spotipy.oauth2 import SpotifyOAuth, CacheFileHandler
 from pydantic import BaseModel, Field
 from loguru import logger
 
@@ -131,6 +131,9 @@ class SpotifyClient:
             'playlist-read-collaborative'
         ])
         
+        # Create cache handler if cache path provided
+        cache_handler = CacheFileHandler(cache_path=cache_path) if cache_path else None
+        
         # Create auth manager with cache handling
         self.auth_manager = SpotifyOAuth(
             client_id=client_id,
@@ -138,7 +141,7 @@ class SpotifyClient:
             redirect_uri=redirect_uri,
             scope=scope,
             open_browser=False,
-            cache_path=cache_path if cache_path else None
+            cache_handler=cache_handler
         )
         
         if access_token and refresh_token:
