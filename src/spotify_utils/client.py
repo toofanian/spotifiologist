@@ -23,6 +23,7 @@ class SpotifyTrack(BaseModel):
     is_local: bool = False
     duration_ms: int
     uri: str
+    last_seen: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     @classmethod
     def from_saved_track(cls, spotify_track: dict) -> 'SpotifyTrack':
@@ -128,7 +129,8 @@ class SpotifyClient:
         scope = ' '.join([
             'user-library-read',
             'playlist-read-private',
-            'playlist-read-collaborative'
+            'playlist-read-collaborative',
+            'user-read-recently-played'
         ])
         
         # Create cache handler if cache path provided
@@ -409,4 +411,57 @@ class SpotifyClient:
             results = self.client.next(results)
         
         logger.info(f'Retrieved {len(tracks)} tracks from playlist "{playlist_name}"')
+        return tracks
+        
+    def check_saved_tracks(self, track_ids: List[str]) -> List[bool]:
+        """Check if tracks are saved in the user's library.
+        
+        Args:
+            track_ids: List of Spotify track IDs to check
+            
+        Returns:
+            List of booleans indicating whether each track is saved
+        """
+        # Spotify API has a limit of 50 IDs per request
+        results = []
+        for i in range(0, len(track_ids), 50):
+            batch = track_ids[i:i + 50]
+            batch_results = self.client.current_user_saved_tracks_contains(batch)
+            results.extend(batch_results)
+        return results
+        
+    def get_recently_played(self, limit: int = 50) -> List[SpotifyTrack]:
+        """Fetch recently played tracks from user's history.
+        
+        Args:
+            limit: Maximum number of tracks to return. Max is 50 due to Spotify API limits.
+            
+        Returns:
+            List of SpotifyTrack objects
+        """
+        if limit > 50:
+            logger.warning(f'Limit {limit} exceeds Spotify API max of 50, using 50')
+            limit = 50
+            
+        results = self.client.current_user_recently_played(limit=limit)
+        tracks = []
+        
+        for item in results['items']:
+            # Skip local files
+            if item['track'].get('is_local', False):
+                continue
+                
+            track = SpotifyTrack(
+                id=item['track']['id'],
+                name=item['track']['name'],
+                artists=[artist['name'] for artist in item['track']['artists']],
+                album_id=item['track']['album']['id'],
+                album_name=item['track']['album']['name'],
+                added_at=datetime.fromisoformat(item['played_at'].replace('Z', '+00:00')),
+                duration_ms=item['track']['duration_ms'],
+                uri=item['track']['uri']
+            )
+            tracks.append(track)
+            
+        logger.info(f'Retrieved {len(tracks)} recently played tracks')
         return tracks

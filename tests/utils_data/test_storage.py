@@ -13,15 +13,17 @@ from utils_data.models import ChangeAction, ItemChange, PlaylistChange
 @pytest.fixture
 def mock_track():
     """Create a mock SpotifyTrack."""
+    now = datetime.now(timezone.utc)
     return SpotifyTrack(
         id="track123",
         name="Test Track",
         artists=["Test Artist"],
         album_id="album123",
         album_name="Test Album",
-        added_at=datetime.now(timezone.utc),
+        added_at=now,
         duration_ms=300000,
-        uri="spotify:track:track123"
+        uri="spotify:track:track123",
+        last_seen=now
     )
 
 

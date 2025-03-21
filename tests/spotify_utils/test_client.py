@@ -1,5 +1,5 @@
 """Tests for the Spotify client implementation."""
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 import pytest
@@ -31,7 +31,8 @@ def mock_spotify_track():
             'uri': 'spotify:track:track123',
             'is_local': False
         },
-        'added_at': '2024-03-06T12:00:00Z',
+        'added_at': '2024-03-14T12:00:00+00:00',
+        'played_at': '2024-03-14T12:00:00+00:00',
         'added_by': {'id': 'user123'}
     }
 
@@ -97,6 +98,7 @@ def test_spotify_track_from_response(mock_spotify_track):
     assert track.album_id == 'album123'
     assert track.album_name == 'Test Album'
     assert isinstance(track.added_at, datetime)
+    assert isinstance(track.last_seen, datetime)
     assert track.uri == 'spotify:track:track123'
 
 
@@ -130,17 +132,31 @@ def test_spotify_playlist_from_response(mock_spotify_playlist):
 @patch('spotipy.Spotify')
 def test_get_saved_tracks(mock_spotify, mock_env_vars, mock_spotify_track):
     """Test fetching saved tracks from library."""
+    # Mock the Spotify API response
     mock_spotify.return_value.current_user_saved_tracks.return_value = {
         'items': [mock_spotify_track],
         'next': None
     }
     
+    # Initialize client and fetch tracks
     client = SpotifyClient.from_env()
     tracks = client.get_saved_tracks()
     
+    # Verify track data
     assert len(tracks) == 1
-    assert isinstance(tracks[0], SpotifyTrack)
-    assert tracks[0].id == 'track123'
+    track = tracks[0]
+    assert isinstance(track, SpotifyTrack)
+    assert track.id == 'track123'
+    assert track.name == 'Test Track'
+    assert track.artists == ['Test Artist']
+    assert track.album_id == 'album123'
+    assert track.album_name == 'Test Album'
+    assert track.added_at == datetime.fromisoformat('2024-03-14T12:00:00+00:00')
+    assert track.duration_ms == 300000
+    assert track.uri == 'spotify:track:track123'
+    assert isinstance(track.last_seen, datetime)
+    
+    # Verify API call
     mock_spotify.return_value.current_user_saved_tracks.assert_called_once_with(limit=50)
 
 
