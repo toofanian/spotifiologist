@@ -235,28 +235,26 @@ class SpotifyClient:
         # Calculate remaining items to fetch
         remaining = limit if limit is not None else None
         
+        page = 0
+        offset = 0
         while True:
             # Adjust per_request to avoid over-fetching
             per_request = min(50, remaining) if remaining is not None else 50
             if per_request == 0:
                 break
-                
-            results = self.client.current_user_saved_tracks(limit=per_request)
+            results = self.client.current_user_saved_tracks(limit=per_request, offset=offset)
             new_tracks = [SpotifyTrack.from_saved_track(item) for item in results['items']]
             tracks.extend(new_tracks)
-            
+            print(f"Fetched page {page}: {len(new_tracks)} tracks (total so far: {len(tracks)})", end='\r', flush=True)
+            page += 1
+            offset += len(new_tracks)
             if remaining is not None:
                 remaining -= len(new_tracks)
-            
             # Stop if we've reached the limit or no more results
             if remaining is not None and remaining <= 0:
                 break
-                
             if not results['next']:
                 break
-                
-            results = self.client.next(results)
-        
         logger.info(f'Retrieved {len(tracks)} saved tracks')
         return tracks
 
@@ -272,28 +270,26 @@ class SpotifyClient:
         # Calculate remaining items to fetch
         remaining = limit if limit is not None else None
         
+        page = 0
+        offset = 0
         while True:
             # Adjust per_request to avoid over-fetching
             per_request = min(50, remaining) if remaining is not None else 50
             if per_request == 0:
                 break
-                
-            results = self.client.current_user_saved_albums(limit=per_request)
+            results = self.client.current_user_saved_albums(limit=per_request, offset=offset)
             new_albums = [SpotifyAlbum.from_saved_album(item) for item in results['items']]
             albums.extend(new_albums)
-            
+            print(f"Fetched page {page}: {len(new_albums)} albums (total so far: {len(albums)})", end='\r', flush=True)
+            page += 1
+            offset += len(new_albums)
             if remaining is not None:
                 remaining -= len(new_albums)
-            
             # Stop if we've reached the limit or no more results
             if remaining is not None and remaining <= 0:
                 break
-                
             if not results['next']:
                 break
-                
-            results = self.client.next(results)
-        
         logger.info(f'Retrieved {len(albums)} saved albums')
         return albums
 
@@ -323,39 +319,31 @@ class SpotifyClient:
                   page, so the actual number of playlists returned might need to be limited.
         """
         playlists = []
-        # Calculate remaining items to fetch
+        offset = 0
+        page = 0
         remaining = limit if limit is not None else None
         logger.info(f'Fetching playlists with limit={limit}')
-        
         while True:
-            # Adjust per_request to avoid over-fetching
             per_request = min(50, remaining) if remaining is not None else 50
             if per_request == 0:
                 break
-                
-            results = self.client.current_user_playlists(limit=per_request)
+            results = self.client.current_user_playlists(limit=per_request, offset=offset)
             new_playlists = [SpotifyPlaylist.from_playlist(item) for item in results['items']]
             playlists.extend(new_playlists)
-            
+            logger.info(f"Fetched page {page}: {len(new_playlists)} playlists (total so far: {len(playlists)})")
+            page += 1
+            offset += len(new_playlists)
             if remaining is not None:
                 remaining -= len(new_playlists)
-            
-            # Stop if we've reached the limit or no more results
             if remaining is not None and remaining <= 0:
                 break
-            
-            # No more pages to fetch
             if not results['next']:
                 break
-                
-            # Get next page if we need more items (either no limit or haven't reached limit)
-            results = self.client.next(results)
-        
         logger.info(f'Retrieved {len(playlists)} playlists')
         return playlists
 
-    def get_playlist_tracks(self, playlist_id: str, limit: int = 5) -> List[PlaylistTrack]:
-        """Fetch tracks from a specific playlist.
+    def get_playlist_tracks(self, playlist_id: str, limit: int = 100) -> List[PlaylistTrack]:
+        """Fetch tracks from a playlist.
         
         Args:
             playlist_id: The Spotify ID of the playlist
@@ -373,19 +361,25 @@ class SpotifyClient:
         
         tracks = []
         position = 0
+        offset = 0
         # Calculate remaining items to fetch
         remaining = limit if limit is not None else None
         logger.info(f'Fetching tracks from playlist "{playlist_name}" with limit={limit}')
         
+        page = 0
         while True:
             # Use standard per_request limit
             per_request = min(100, remaining) if remaining is not None else 100
             if per_request == 0:
                 break
                 
-            results = self.client.playlist_items(playlist_id, limit=per_request)
+            results = self.client.playlist_items(playlist_id, limit=per_request, offset=offset)
             
-            for item in results['items']:
+            items = results['items']
+            logger.info(f"Fetched page {page} for playlist '{playlist_name}': {len(items)} tracks (total so far: {len(tracks)})")
+            page += 1
+            
+            for item in items:
                 # Skip invalid tracks and local files
                 if not item.get('track') or item['track'].get('is_local', False):
                     continue
@@ -407,6 +401,7 @@ class SpotifyClient:
                 
             # Get next page of results
             results = self.client.next(results)
+            offset = results['offset']
         
         logger.info(f'Retrieved {len(tracks)} tracks from playlist "{playlist_name}"')
         return tracks
