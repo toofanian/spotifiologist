@@ -79,7 +79,7 @@ class LibraryBrowser:
 
     def push_library_to_firestore(self, include_playlists: bool = False) -> None:
         """
-        Load library data from JSON and push it to Firestore. Does NOT fetch from Spotify.
+        Load library data from JSON and push it to Firestore. Also computes and stores a diff and a snapshot.
         Args:
             include_playlists (bool): If True, also push playlists and playlist tracks.
         """
@@ -91,11 +91,20 @@ class LibraryBrowser:
         try:
             user_id = self.client.client.current_user()['id']
             fs = FirestoreStorage()
+            # Push current library state
             fs.store_tracks(user_id, library_data["tracks"])
             fs.store_albums(user_id, library_data["albums"])
             if include_playlists:
                 fs.store_playlists(user_id, library_data["playlists"])
             logger.info(f"Backed up library to Firestore for user {user_id}")
+            # Fetch latest snapshot and compute diff
+            prev_snapshot = fs.fetch_latest_snapshot(user_id)
+            diff = fs.compute_library_diff(prev_snapshot, library_data)
+            # Only store diff if not first backup
+            if prev_snapshot is not None:
+                fs.store_diff(user_id, diff)
+            # Store new snapshot
+            fs.store_snapshot(user_id, library_data)
         except Exception as e:
             logger.error(f"Failed to back up to Firestore: {e}")
 
