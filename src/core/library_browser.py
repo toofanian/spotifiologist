@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 from loguru import logger
 
 from spotify_utils.client import SpotifyClient, SpotifyTrack, SpotifyAlbum, SpotifyPlaylist, PlaylistTrack
+from utils_data.firestore_storage import FirestoreStorage
 
 class LibraryBrowser:
     """Browser for Spotify library data."""
@@ -29,40 +30,86 @@ class LibraryBrowser:
         # Create data directory if it doesn't exist
         self.data_dir.mkdir(exist_ok=True)
         
-    def pull_library(self) -> None:
-        """Pull all library data from Spotify and save it locally."""
+    def pull_library_from_spotify(self, include_playlists: bool = False) -> None:
+        """
+        Fetch all library data from Spotify and save it locally as JSON. Does NOT push to Firestore.
+        Args:
+            include_playlists (bool): If True, also fetch playlists and playlist tracks.
+        """
         logger.info("Pulling library data from Spotify...")
-        
-        # Get all library data
+        # Fetch tracks
+        logger.info("Fetching saved tracks from Spotify...")
         tracks = self.client.get_saved_tracks(limit=None)
+        logger.info(f"Fetched {len(tracks)} tracks.")
+        # Fetch albums
+        logger.info("Fetching saved albums from Spotify...")
         albums = self.client.get_saved_albums(limit=None)
-        playlists = self.client.get_playlists(limit=None)
-        
-        # Get all tracks for each playlist
-        playlist_tracks: Dict[str, List[PlaylistTrack]] = {}
-        for playlist in playlists:
-            playlist_tracks[playlist.id] = self.client.get_playlist_tracks(
-                playlist.id, limit=None
-            )
-            
+        logger.info(f"Fetched {len(albums)} albums.")
+        playlists = []
+        playlist_tracks = {}
+        if include_playlists:
+            logger.info("Fetching playlists from Spotify...")
+            playlists = self.client.get_playlists(limit=None)
+            logger.info(f"Fetched {len(playlists)} playlists.")
+            for playlist in playlists:
+                logger.info(f"Fetching tracks for playlist: {playlist.name} ({playlist.id})...")
+                playlist_tracks[playlist.id] = self.client.get_playlist_tracks(
+                    playlist.id, limit=None
+                )
+                logger.info(f"Fetched {len(playlist_tracks[playlist.id])} tracks for playlist: {playlist.name} ({playlist.id})")
         # Convert to dictionaries for JSON serialization
+        track_dicts = [self._track_to_dict(t) for t in tracks]
+        album_dicts = [self._album_to_dict(a) for a in albums]
+        playlist_dicts = [self._playlist_to_dict(p) for p in playlists]
+        playlist_tracks_dict = {
+            pid: [self._playlist_track_to_dict(t) for t in tracks]
+            for pid, tracks in playlist_tracks.items()
+        }
         library_data = {
             "last_updated": datetime.now().isoformat(),
-            "tracks": [self._track_to_dict(t) for t in tracks],
-            "albums": [self._album_to_dict(a) for a in albums],
-            "playlists": [self._playlist_to_dict(p) for p in playlists],
-            "playlist_tracks": {
-                pid: [self._playlist_track_to_dict(t) for t in tracks]
-                for pid, tracks in playlist_tracks.items()
-            }
+            "tracks": track_dicts,
+            "albums": album_dicts,
+            "playlists": playlist_dicts,
+            "playlist_tracks": playlist_tracks_dict
         }
-        
-        # Save to file
         with open(self.data_file, 'w') as f:
             json.dump(library_data, f, indent=2)
-            
         logger.info(f"Saved library data to {self.data_file}")
         self._print_summary(library_data)
+
+    def push_library_to_firestore(self, include_playlists: bool = False) -> None:
+        """
+        Load library data from JSON and push it to Firestore. Also computes and stores a diff and a snapshot.
+        Args:
+            include_playlists (bool): If True, also push playlists and playlist tracks.
+        """
+        if not os.path.exists(self.data_file):
+            logger.error(f"Library data file not found: {self.data_file}. Run pull_library_from_spotify first.")
+            return
+        with open(self.data_file, 'r') as f:
+            library_data = json.load(f)
+        try:
+            user_id = self.client.client.current_user()['id']
+            fs = FirestoreStorage()
+            # Push current library state
+            # Only store diffs and snapshots, not flat collections
+            prev_snapshot = fs.fetch_latest_snapshot(user_id)
+            diff = fs.compute_library_diff(prev_snapshot, library_data)
+            if prev_snapshot is not None:
+                fs.store_diff(user_id, diff)
+            fs.store_snapshot(user_id, library_data)
+            logger.info(f"Backed up library snapshot and diff to Firestore for user {user_id}")
+        except Exception as e:
+            logger.error(f"Failed to back up to Firestore: {e}")
+
+    def pull_library(self, include_playlists: bool = False) -> None:
+        """
+        Full pipeline: fetch from Spotify, save to JSON, then push to Firestore.
+        Args:
+            include_playlists (bool): If True, also fetch/push playlists and playlist tracks.
+        """
+        self.pull_library_from_spotify(include_playlists=include_playlists)
+        self.push_library_to_firestore(include_playlists=include_playlists)
         
     def _print_summary(self, data: Dict) -> None:
         """Print a summary of the library data."""

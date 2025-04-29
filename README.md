@@ -14,7 +14,7 @@ Spotifiologist helps you take control of your Spotify data by providing tools to
   - [x] Library data models (tracks, albums, playlists)
   - [ ] Library data fetching
     - [x] Tracks and albums
-    - [ ] Playlists (in progress)
+    - [🛠️] Playlists
 
 - [ ] Data Storage Layer
   - Schema design for library entities
@@ -26,7 +26,7 @@ Spotifiologist helps you take control of your Spotify data by providing tools to
 - [ ] Library Backup
   - Automated backup of saved items
     - Tracks and albums
-    - Artists and playlists
+    - Playlists (optional)
   - Periodic sync (configurable intervals)
   - Backup verification
 
