@@ -1,6 +1,5 @@
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any, Optional
 from google.cloud import firestore
-from google.oauth2 import service_account
 from loguru import logger
 import os
 
@@ -25,23 +24,6 @@ class FirestoreStorage:
         self.client = firestore.Client(project=project_id)
         logger.info(f"Initialized Firestore client for project {project_id}")
 
-    def store_tracks(self, user_id: str, tracks: List[Dict[str, Any]]):
-        col = self.client.collection("users").document(user_id).collection("tracks")
-        for track in tracks:
-            col.document(track['id']).set(track)
-        logger.info(f"Stored {len(tracks)} tracks to Firestore for user {user_id}")
-
-    def store_albums(self, user_id: str, albums: List[Dict[str, Any]]):
-        col = self.client.collection("users").document(user_id).collection("albums")
-        for album in albums:
-            col.document(album['id']).set(album)
-        logger.info(f"Stored {len(albums)} albums to Firestore for user {user_id}")
-
-    def store_playlists(self, user_id: str, playlists: List[Dict[str, Any]]):
-        col = self.client.collection("users").document(user_id).collection("playlists")
-        for playlist in playlists:
-            col.document(playlist['id']).set(playlist)
-        logger.info(f"Stored {len(playlists)} playlists to Firestore for user {user_id}")
 
     def store_snapshot(self, user_id: str, library_data: Dict[str, Any], timestamp: Optional[str] = None):
         """
@@ -121,17 +103,3 @@ class FirestoreStorage:
             "removed_playlists": removed_playlists,
         }
 
-    def fetch_tracks(self, user_id: str) -> List[Dict[str, Any]]:
-        col = self.client.collection("users").document(user_id).collection("tracks")
-        docs = col.stream()
-        return [doc.to_dict() for doc in docs]
-
-    def fetch_albums(self, user_id: str) -> List[Dict[str, Any]]:
-        col = self.client.collection("users").document(user_id).collection("albums")
-        docs = col.stream()
-        return [doc.to_dict() for doc in docs]
-
-    def fetch_playlists(self, user_id: str) -> List[Dict[str, Any]]:
-        col = self.client.collection("users").document(user_id).collection("playlists")
-        docs = col.stream()
-        return [doc.to_dict() for doc in docs]
