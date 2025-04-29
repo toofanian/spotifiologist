@@ -7,6 +7,8 @@ databases
 scratch.txt
 sandbox*
 .env
+*.cache
+.cache/
 
 # Python
 __pycache__/
